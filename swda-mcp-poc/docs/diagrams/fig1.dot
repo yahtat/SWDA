@@ -1,0 +1,30 @@
+digraph G {
+  rankdir=LR; compound=true; fontname="Helvetica"; nodesep=0.25; ranksep=0.45; pad=0.2;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=15, fillcolor="#FFFFFF", color="#4B5563"];
+  edge [fontname="Helvetica", fontsize=12, color="#374151"];
+  labelloc=t; label="Figure 1 - End-to-end MLOps / AIOps data and control flow (AWS + Databricks)"; fontsize=20;
+
+  subgraph cluster_src { label="Sources"; style="rounded,filled"; fillcolor="#F3F4F6"; fontsize=15;
+    crm [label="Service-request\nsystems (CRM/portal)"]; ref [label="Programme catalogue\n& eligibility rules"]; fb [label="Caseworker feedback\n(accept / override)"]; }
+
+  subgraph cluster_data { label="Data & feature platform (Databricks + S3, Unity Catalog)"; style="rounded,filled"; fillcolor="#E0F2FE"; fontsize=15;
+    bronze [label="Bronze\nraw Delta (S3)\nschema-enforced"]; silver [label="Silver\nclean + PII-tokenised\nDLT expectations"]; gold [label="Gold features\nFeature tables\npoint-in-time"]; dq [label="Data-quality gates\n(freshness, nulls,\nschema, volume)", fillcolor="#FEF3C7"]; }
+
+  subgraph cluster_dev { label="Experimentation & registry"; style="rounded,filled"; fillcolor="#EDE9FE"; fontsize=15;
+    exp [label="MLflow tracking\n(params, data version,\nmetrics, git SHA)"]; eval [label="Evaluation suite\naccuracy, slices,\nfairness, robustness", fillcolor="#FEF3C7"]; mreg [label="UC Model Registry\n+ prompt/artefact registry\naliases: challenger/champion"]; }
+
+  subgraph cluster_ci { label="CI / CD / CT (GitHub Actions + Databricks Asset Bundles + Terraform)"; style="rounded,filled"; fillcolor="#DCFCE7"; fontsize=15;
+    ci [label="CI: lint, unit,\ndata-contract, SAST,\nSCA, secrets scan"]; cd [label="CD: dev -> staging -> prod\nrelease gates +\nmanual approval", fillcolor="#FEF3C7"]; ct [label="CT: scheduled /\ndrift-triggered\nretraining workflow"]; }
+
+  subgraph cluster_serve { label="Inference"; style="rounded,filled"; fillcolor="#FFE4E6"; fontsize=15;
+    batch [label="Hourly batch inference\nDatabricks Workflow\n(idempotent MERGE)"]; preds [label="Predictions Delta table\n+ lineage + model version"]; online [label="Phase 2: online API\nModel Serving behind\nAPI Gateway", style="rounded,dashed,filled"]; }
+
+  subgraph cluster_ops { label="Observability & AIOps"; style="rounded,filled"; fillcolor="#FFEDD5"; fontsize=15;
+    mon [label="Lakehouse Monitoring\ndata / prediction /\nperformance drift"]; cw [label="CloudWatch / OpenTelemetry\nmetrics, logs, traces"]; alert [label="Alerting & incident\nPagerDuty, runbooks,\nauto-rollback"]; }
+
+  crm -> bronze [label="CDC / Auto Loader"]; ref -> silver; bronze -> silver -> gold; silver -> dq [style=dashed]; dq -> gold [label="pass"];
+  gold -> exp [label="versioned\nsnapshot"]; exp -> eval -> mreg; mreg -> ci [label="PR / tag"]; ci -> cd; cd -> batch [label="deploy bundle\n+ alias"]; cd -> online [style=dashed];
+  gold -> batch; mreg -> batch [label="load @champion"]; batch -> preds; preds -> mon; online -> mon [style=dashed];
+  fb -> gold [label="labels"]; preds -> fb [style=dashed, label="reviewed by\ncaseworker"]; 
+  mon -> cw; cw -> alert; mon -> ct [label="drift / decay\ntrigger", color="#B91C1C", fontcolor="#B91C1C"]; ct -> exp [label="retrain", color="#B91C1C"]; alert -> cd [label="rollback alias", color="#B91C1C", fontcolor="#B91C1C", style=dashed];
+}

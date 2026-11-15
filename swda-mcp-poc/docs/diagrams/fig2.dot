@@ -1,0 +1,28 @@
+digraph G {
+  rankdir=TB; compound=true; fontname="Helvetica"; nodesep=0.28; ranksep=0.5; pad=0.2;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=15, fillcolor="#FFFFFF", color="#4B5563"];
+  edge [fontname="Helvetica", fontsize=12, color="#374151"];
+  labelloc=t; label="Figure 2 - Agent registry, approval workflow and governed MCP exposure"; fontsize=20;
+
+  subgraph cluster_build { label="Agent build & approval (control plane)"; style="rounded,filled"; fillcolor="#EDE9FE"; fontsize=15;
+    dev [label="Agent owner\n(product team)"]; repo [label="Git: agent code +\nmanifest.json (versioned)"]; sub [label="1. Submit manifest\n(immutable version,\nSHA-256 pinned)"];
+    gates [label="2. Automated gates G1-G6\nschema | tool allow-list &\nsensitivity | eval | injection\n| determinism | output contract", fillcolor="#FEF3C7"];
+    appr [label="3. Approvals (distinct people)\nML lead + Security + Governance\nowner cannot self-approve", fillcolor="#FEF3C7"];
+    reg [label="Agent Registry\nDRAFT/SUBMITTED/VALIDATED/\nAPPROVED/SUSPENDED/RETIRED\n+ approval history", fillcolor="#DCFCE7"]; }
+
+  subgraph cluster_run { label="Runtime exposure (data plane)"; style="rounded,filled"; fillcolor="#FFE4E6"; fontsize=15;
+    waf [label="WAF / API Gateway\nTLS, mTLS"]; gw [label="MCP Gateway / Server\n(JSON-RPC 2.0)\nauthN -> authZ(scope)\n-> rate limit -> schema check", fillcolor="#FEE2E2"];
+    broker [label="Tool broker\nper-agent allow-list,\ncall budget, timeout"]; agent [label="Approved agent\n(Service Recommendation)\nruns in isolated task"]; 
+    tools [label="Approved tools\nclassify | search | eligibility\n(read-only, scoped IAM role)"]; restricted [label="Restricted tools / data\n(case history, write APIs)", style="rounded,filled,dashed", fillcolor="#E5E7EB"]; }
+
+  subgraph cluster_clients { label="MCP clients"; style="rounded,filled"; fillcolor="#E0F2FE"; fontsize=15;
+    c1 [label="Caseworker portal\n(scope: invoke)"]; c2 [label="Internal assistant /\nagent host (stdio/HTTP)"]; c3 [label="Analytics client\n(scope: catalogue only)"]; }
+
+  subgraph cluster_gov { label="Governance & observability"; style="rounded,filled"; fillcolor="#FFEDD5"; fontsize=15;
+    idp [label="Enterprise IdP\nOIDC / short-lived tokens"]; audit [label="Hash-chained audit\nCloudWatch -> S3 Object Lock\n+ Delta audit table"]; met [label="Metrics & traces\nlatency, denials,\nreview rate"]; kill [label="Kill switch\nSUSPEND = effective\non next request", color="#B91C1C", fontcolor="#B91C1C"]; }
+
+  dev -> repo -> sub -> gates; gates -> appr [label="pass"]; gates -> dev [label="fail: REJECTED", style=dashed]; appr -> reg [label="all roles"];
+  reg -> gw [label="approved agents only,\nmanifest hash verified\non every call", color="#15803D", fontcolor="#15803D", penwidth=1.6];
+  c1 -> waf; c2 -> waf; c3 -> waf; waf -> gw; idp -> gw [label="validate token"]; gw -> broker -> agent; agent -> broker; broker -> tools; broker -> restricted [label="DENIED", color="#B91C1C", fontcolor="#B91C1C", style=dashed];
+  gw -> audit; gw -> met; kill -> reg [color="#B91C1C"]; audit -> kill [style=invis];
+}

@@ -1,0 +1,17 @@
+digraph G {
+  rankdir=TB; fontname="Helvetica"; nodesep=0.25; ranksep=0.35; pad=0.2;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, fillcolor="#FFFFFF", color="#4B5563"];
+  edge [fontname="Helvetica", fontsize=8, color="#374151"];
+  labelloc=t; label="Figure 3 - CI/CD/CT pipeline and release gates"; fontsize=13;
+  pr [label="Pull request"]; 
+  ci [label="CI (every PR)\nruff/mypy | unit tests | data-contract tests\nSAST + dependency + secret scan | IaC scan (tfsec)\nbundle validate", fillcolor="#DCFCE7"];
+  dev [label="Deploy to DEV (auto)\nsmoke run on 1% sample"];
+  stg [label="STAGING (auto)\nfull backfill on frozen golden snapshot\nreproducibility check | perf/cost budget", fillcolor="#FEF3C7"];
+  g [label="Model release gates\n1. beats champion on primary metric (CI bound)\n2. no slice regresses > 2 pts / fairness gap within limit\n3. robustness + prompt-injection suite pass\n4. latency/cost within budget\n5. lineage, model card, signature complete", shape=box, fillcolor="#FEF3C7"];
+  man [label="Manual approval\n(ML lead + governance for high-risk)", fillcolor="#EDE9FE"];
+  shadow [label="PROD shadow / canary\n(batch: dual-run 24 h, compare)"]; 
+  prod [label="PROD: promote alias @champion\n(atomic, reversible)", fillcolor="#FFE4E6"];
+  mon [label="Post-deploy monitors\nSLO burn rate, drift, review rate"]; rb [label="Auto-rollback:\nre-point @champion to previous version", color="#B91C1C", fontcolor="#B91C1C"];
+  ct [label="CT: drift / decay / schedule trigger\n-> retrain on new snapshot -> challenger", fillcolor="#E0F2FE"];
+  pr -> ci -> dev -> stg -> g -> man -> shadow -> prod -> mon; mon -> rb [label="breach", color="#B91C1C"]; rb -> prod [style=dashed, color="#B91C1C"]; mon -> ct [label="drift"]; ct -> pr [label="opens PR / registers challenger"]; g -> pr [label="fail", style=dashed];
+}

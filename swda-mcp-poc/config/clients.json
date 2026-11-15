@@ -1,0 +1,29 @@
+{
+  "_note": "Demo tokens are documented in README; only SHA-256 digests are stored here.",
+  "clients": [
+    {
+      "client_id": "caseworker-portal",
+      "token_sha256": "984513e5483e302dc3f6b16dd961be1cda7d5c1d26ccc63e63897cd5091d56a0",
+      "scopes": [
+        "agents:service-recommendation:invoke"
+      ],
+      "rate_limit_per_min": 120
+    },
+    {
+      "client_id": "analytics-readonly",
+      "token_sha256": "92e8d0b0d8924a5884d53981d14257c10c437f07e5d9ffd97a59331077e75cb4",
+      "scopes": [
+        "agents:catalogue:read"
+      ],
+      "rate_limit_per_min": 30
+    },
+    {
+      "client_id": "throttle-demo",
+      "token_sha256": "3e0ceaa0037ad282cdc3bf8b366593d3ef3f99f4dcdc114512001f40abf4e4c8",
+      "scopes": [
+        "agents:service-recommendation:invoke"
+      ],
+      "rate_limit_per_min": 3
+    }
+  ]
+}

@@ -1,0 +1,175 @@
+{
+  "agent_id": "service-recommendation-agent",
+  "version": "1.0.0",
+  "name": "Service Recommendation Agent",
+  "description": "Classifies a structured service request and recommends up to three programmes with indicative eligibility. Advisory only.",
+  "owner": "product-team-services",
+  "risk_tier": "medium",
+  "data_classification": "confidential",
+  "implementation": {
+    "type": "deterministic-tools",
+    "entrypoint": "swda_mcp.agent:invoke",
+    "model": null,
+    "prompt_version": null
+  },
+  "allowed_tools": [
+    "classify_request",
+    "search_programmes",
+    "check_eligibility"
+  ],
+  "limits": {
+    "max_tool_calls": 8,
+    "timeout_seconds": 5,
+    "max_request_bytes": 8192
+  },
+  "evaluation": {
+    "golden_set": "swda_mcp/data/golden_set.json",
+    "min_category_accuracy": 0.9,
+    "min_programme_hit_rate_top3": 0.9,
+    "max_forbidden_tool_calls": 0
+  },
+  "mcp": {
+    "tool_name": "recommend_services",
+    "required_scope": "agents:service-recommendation:invoke",
+    "rate_limit_per_min": 60,
+    "input_schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "description",
+        "region",
+        "household_size",
+        "urgency"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{3,40}$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 2000
+        },
+        "age": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 120
+        },
+        "region": {
+          "type": "string",
+          "enum": [
+            "north",
+            "south",
+            "east",
+            "west",
+            "central"
+          ]
+        },
+        "household_income_monthly": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "household_size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "urgency": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        }
+      }
+    },
+    "output_schema": {
+      "type": "object",
+      "required": [
+        "request_id",
+        "recommendations",
+        "needs_human_review",
+        "review_reasons",
+        "disclaimer"
+      ],
+      "properties": {
+        "request_id": {
+          "type": "string"
+        },
+        "predicted_categories": {
+          "type": "array"
+        },
+        "recommendations": {
+          "type": "array",
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "required": [
+              "programme_id",
+              "name",
+              "category",
+              "score",
+              "eligible",
+              "rationale"
+            ],
+            "properties": {
+              "programme_id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "category": {
+                "type": "string"
+              },
+              "score": {
+                "type": "number"
+              },
+              "eligible": {
+                "type": "boolean"
+              },
+              "rationale": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "needs_human_review": {
+          "type": "boolean"
+        },
+        "review_reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "disclaimer": {
+          "type": "string"
+        },
+        "agent": {
+          "type": "object"
+        }
+      }
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  "approval": {
+    "required_roles": [
+      "ml_lead",
+      "security",
+      "governance"
+    ]
+  }
+}
